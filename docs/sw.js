@@ -1,5 +1,5 @@
 // Offline app shell. Bump VERSION when shipping changes so phones pick them up.
-const VERSION = 'spendsphere-v1';
+const VERSION = 'spendsphere-v2';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'parser.js', 'demo.js', 'logo.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'manifest.json'];
 
 self.addEventListener('install', (e) => {
