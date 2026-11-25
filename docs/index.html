@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#07080d">
+  <title>SpendSphere</title>
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="description" content="See where your money goes, from your bank SMS alerts. Runs entirely in your browser.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ───────── Opening animation ───────── -->
+<div id="splash" aria-hidden="true">
+  <div class="splash-glow"></div>
+  <svg class="splash-logo" viewBox="0 0 512 512">
+    <defs>
+      <radialGradient id="sOrb" cx="0.36" cy="0.32" r="0.75">
+        <stop offset="0" stop-color="#b9f6ff"/><stop offset="0.35" stop-color="#5ee0d0"/>
+        <stop offset="0.7" stop-color="#6d5cff"/><stop offset="1" stop-color="#2a1a7a"/>
+      </radialGradient>
+      <linearGradient id="sRing" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#ff7ad9" stop-opacity="0.1"/><stop offset="0.5" stop-color="#ffb36b"/><stop offset="1" stop-color="#ff7ad9" stop-opacity="0.3"/>
+      </linearGradient>
+    </defs>
+    <circle class="s-orb" cx="256" cy="256" r="112" fill="url(#sOrb)"/>
+    <path class="s-line" d="M188 292 L226 250 L258 272 L322 204" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle class="s-dot" cx="322" cy="204" r="14" fill="#fff"/>
+    <g transform="rotate(-24 256 256)">
+      <ellipse class="s-ring" cx="256" cy="256" rx="178" ry="56" fill="none" stroke="url(#sRing)" stroke-width="12"/>
+    </g>
+    <circle class="s-moon" cx="404" cy="190" r="12" fill="#ffd29a"/>
+  </svg>
+  <div class="splash-word"><span>Spend</span><span class="grad">Sphere</span></div>
+  <div class="splash-tag">Every rupee, in orbit.</div>
+</div>
+
+<!-- ───────── Onboarding ───────── -->
+<section id="onboard" class="screen" hidden>
+  <div class="ob-hero">
+    <img src="logo.svg" class="ob-logo" alt="">
+    <h1>Know where your<br><span class="grad">money goes.</span></h1>
+    <p class="muted">SpendSphere reads the bank, card and UPI alerts in your SMS backup and turns them into a clear picture of your spending — right in your browser, never uploaded.</p>
+  </div>
+
+  <div class="card ob-card">
+    <div class="label">How far back should we look?</div>
+    <div class="chips" id="obChips"></div>
+    <div class="range-row">
+      <input type="range" id="obRange" min="1" max="24" value="6">
+      <div class="range-val"><b id="obMonths">6</b> months</div>
+    </div>
+    <div class="hint muted" id="obSince"></div>
+  </div>
+
+  <ul class="ob-points">
+    <li><span>🔒</span>Your backup is read in the browser — there is no server</li>
+    <li><span>📩</span>Only transaction alerts are used — chats & OTPs are skipped</li>
+    <li><span>✨</span>Auto‑categorised into food, bills, shopping & more</li>
+  </ul>
+
+  <div class="ob-actions">
+    <button class="btn primary" id="obStart">Import SMS backup</button>
+    <button class="btn ghost" id="obDemo">Explore with demo data</button>
+    <button class="link" id="obHow" style="padding:8px">How do I get my SMS backup?</button>
+  </div>
+</section>
+
+<!-- ───────── Scanning ───────── -->
+<section id="scan" class="screen center" hidden>
+  <div class="scan-orb">
+    <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="scan-track"/><circle cx="60" cy="60" r="52" class="scan-prog" id="scanProg"/></svg>
+    <div class="scan-count" id="scanCount">0</div>
+  </div>
+  <h2 id="scanTitle">Reading your messages…</h2>
+  <p class="muted" id="scanSub">Finding transaction alerts</p>
+</section>
+
+<!-- ───────── Main app ───────── -->
+<section id="app" class="screen" hidden>
+  <header class="top">
+    <div>
+      <div class="muted small" id="greet">Good evening</div>
+      <div class="brand"><img src="logo.svg" alt=""><span>Spend<b class="grad">Sphere</b></span></div>
+    </div>
+    <button class="icon-btn" id="rescanBtn" aria-label="Rescan">
+      <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </header>
+
+  <div class="month-strip" id="monthStrip"></div>
+
+  <div class="views">
+    <!-- Overview -->
+    <div class="view" id="v-overview">
+      <div class="hero card">
+        <div class="hero-bg"></div>
+        <div class="hero-top">
+          <div>
+            <div class="label light" id="heroLabel">Total spent</div>
+            <div class="hero-amt" id="heroAmt">₹0</div>
+          </div>
+          <div class="delta" id="heroDelta"></div>
+        </div>
+        <svg class="spark" id="spark" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+        <div class="hero-foot">
+          <div><span class="muted-l">Received</span><b id="heroIn">₹0</b></div>
+          <div><span class="muted-l">Net flow</span><b id="heroNet">₹0</b></div>
+          <div><span class="muted-l">Txns</span><b id="heroCnt">0</b></div>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi card"><div class="kpi-ic" style="--c:#5ee0d0">◷</div><div class="label">Avg / month</div><div class="kpi-v" id="kAvg">–</div></div>
+        <div class="kpi card"><div class="kpi-ic" style="--c:#ffb36b">◆</div><div class="label">Avg / day</div><div class="kpi-v" id="kDay">–</div></div>
+        <div class="kpi card"><div class="kpi-ic" style="--c:#ff6fb5">▲</div><div class="label">Biggest spend</div><div class="kpi-v" id="kMax">–</div><div class="kpi-s muted" id="kMaxM"></div></div>
+        <div class="kpi card"><div class="kpi-ic" style="--c:#8fa8ff">★</div><div class="label">Top category</div><div class="kpi-v sm" id="kTop">–</div><div class="kpi-s muted" id="kTopP"></div></div>
+      </div>
+
+      <div class="card section">
+        <div class="sec-h"><h3>Where it went</h3><span class="muted small" id="catCount"></span></div>
+        <div class="donut-wrap">
+          <svg class="donut" id="donut" viewBox="0 0 200 200"></svg>
+          <div class="donut-c"><div class="muted small" id="donutLbl">Spent</div><div class="donut-v" id="donutV">₹0</div></div>
+        </div>
+        <div class="cat-list" id="catList"></div>
+      </div>
+
+      <div class="card section">
+        <div class="sec-h"><h3>Monthly trend</h3><span class="muted small">tap a bar</span></div>
+        <div class="bars" id="bars"></div>
+      </div>
+
+      <div class="card section">
+        <div class="sec-h"><h3>Top merchants</h3></div>
+        <div id="merchants"></div>
+      </div>
+
+      <div class="card section">
+        <div class="sec-h"><h3>Spending rhythm</h3><span class="muted small">by weekday</span></div>
+        <div class="week" id="week"></div>
+        <p class="muted small insight" id="weekInsight"></p>
+      </div>
+
+      <div class="card section">
+        <div class="sec-h"><h3>Recent</h3><button class="link" data-goto="activity">See all</button></div>
+        <div id="recent"></div>
+      </div>
+    </div>
+
+    <!-- Activity -->
+    <div class="view" id="v-activity" hidden>
+      <div class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="q" placeholder="Search merchant, bank, amount">
+      </div>
+      <div class="chips scroll" id="actChips"></div>
+      <div id="txList"></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="view" id="v-settings" hidden>
+      <div class="card section">
+        <h3>Data</h3>
+        <p class="muted small" id="scanInfo"></p>
+        <button class="btn primary" id="setRescan">Change period / import backup</button>
+      </div>
+      <div class="card section">
+        <h3>Privacy</h3>
+        <p class="muted small">SpendSphere is a static page with no server. Your SMS backup is read inside this browser, turned into transactions, and kept only in this browser's local storage. Category changes you make are remembered per merchant.</p>
+        <button class="btn danger" id="clearBtn">Clear all data</button>
+      </div>
+      <div class="about muted small">SpendSphere 1.0 · made with ♥</div>
+    </div>
+  </div>
+
+  <nav class="tabbar">
+    <button data-tab="overview" class="on"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-3H4zM14 7h6V4h-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Overview</span></button>
+    <button data-tab="activity"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Activity</span></button>
+    <button data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span>Settings</span></button>
+  </nav>
+</section>
+
+<!-- Bottom sheet -->
+<div id="sheetWrap" hidden>
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet"><div class="grip"></div><div id="sheetBody"></div></div>
+</div>
+<div id="toast"></div>
+
+<script src="parser.js"></script>
+<script src="demo.js"></script>
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
