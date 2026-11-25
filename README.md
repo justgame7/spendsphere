@@ -25,6 +25,19 @@ JSON exports (`[{ "address", "body", "date" }]`) also work. **Explore with demo 
 
 If a category is wrong, tap the transaction and pick the right one. The choice applies to every payment to that merchant.
 
+## Android app (APK)
+
+`android/` is a Capacitor 8 wrapper around the same `docs/` app. In the APK, a native `SmsReader` plugin asks for SMS permission and reads bank alerts straight from the inbox, so no backup file is needed.
+
+Building needs JDK 21 and the Android SDK:
+
+```
+npm install
+npm run apk        # syncs docs/ into android/ and builds android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+`npm run icons` regenerates the launcher icons and splash from `docs/logo.svg`. The APK is meant for sideloading: Google Play restricts apps that read SMS.
+
 ## Hosting
 
 GitHub Pages serves the `docs/` folder from `main`: **Settings › Pages › Deploy from a branch › `main` / `/docs`**.
