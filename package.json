@@ -1,0 +1,20 @@
+{
+  "name": "spendsphere",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SpendSphere - SMS spend dashboard (web on GitHub Pages, Android APK via Capacitor)",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "icons": "node scripts/make-icons.mjs",
+    "apk": "npx cap sync android && cd android && gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.0"
+  }
+}

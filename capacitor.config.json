@@ -1,0 +1,6 @@
+{
+  "appId": "com.spendsphere.app",
+  "appName": "SpendSphere",
+  "webDir": "docs",
+  "android": { "backgroundColor": "#07080d" }
+}

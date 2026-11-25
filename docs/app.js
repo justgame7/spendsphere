@@ -8,6 +8,13 @@
     del(k) { try { localStorage.removeItem('ss_' + k); } catch {} },
   };
 
+  // Inside the Android APK (Capacitor) the native SmsReader plugin reads the inbox directly.
+  // On the website there is no SMS access, so the user imports a backup file instead.
+  const Cap = window.Capacitor;
+  const isNative = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+  const nativePlugin = (name) => (Cap.Plugins && Cap.Plugins[name]) || (Cap.registerPlugin && Cap.registerPlugin(name)) || null;
+  const Sms = isNative ? nativePlugin('SmsReader') : null;
+
   const S = {
     raw: store.get('raw', null),   // money-related messages from the last import ({address, body, date})
     months: store.get('months', 6),
@@ -132,6 +139,17 @@
 
   async function readSms(months) {
     const since = sinceDate(months).getTime();
+    if (isNative && !S.demo) {
+      if (!Sms) throw new Error('SMS reader is not available in this build.');
+      try {
+        const r = await Sms.getMessages({ since });
+        return { list: r.messages || [], demo: false };
+      } catch (e) {
+        throw new Error(/denied/i.test(e.message || '')
+          ? 'SMS permission was not granted. Allow it in Settings › Apps › SpendSphere › Permissions › SMS.'
+          : (e.message || String(e)));
+      }
+    }
     if (S.demo || !S.raw) return { list: window.makeDemoSms(months), demo: true };
     return { list: S.raw.filter((m) => m.date >= since), demo: false };
   }
@@ -166,7 +184,7 @@
       store.set('txns', txns.map(({ body, ...t }) => ({ ...t, body: body.slice(0, 400) })));
       store.set('demo', demo); store.set('scannedAt', S.scannedAt); store.set('months', months);
       openApp();
-      if (demo) toast('Showing demo data — import your SMS backup from Settings to see your own', 4200);
+      if (demo) toast(isNative ? 'Showing demo data — tap ⟳ to scan your own SMS' : 'Showing demo data — import your SMS backup from Settings to see your own', 4200);
       else toast(`${total} transactions from ${months} month${months > 1 ? 's' : ''}`);
     } catch (e) {
       clearInterval(tick);
@@ -455,6 +473,15 @@
   }
 
   function rescanSheet() {
+    if (isNative) {
+      sheet(`<h2>Scan messages</h2><p class="muted small" style="margin:4px 0 0">Choose how many months of SMS to analyse.</p>
+        <div class="chips"></div>
+        <div class="range-row"><input type="range" min="1" max="24"><div class="range-val"><b class="mp-val"></b> months</div></div>
+        <div class="hint muted mp-since"></div>
+        <button class="btn primary" style="margin-top:18px" id="goScan">Scan now</button>`,
+        (root) => { monthPicker(root); root.querySelector('#goScan').onclick = () => { closeSheet(); S.demo = false; scan(S.months); }; });
+      return;
+    }
     const hasRaw = !!(S.raw && S.raw.length);
     sheet(`<h2>Analysis period</h2><p class="muted small" style="margin:4px 0 0">${hasRaw ? 'Re-analyse your imported messages for a different period, or import a fresh backup.' : 'Pick a period, then import your SMS backup.'}</p>
       <div class="chips"></div>
@@ -497,6 +524,15 @@
     // Drag-and-drop a backup file anywhere (desktop)
     document.addEventListener('dragover', (e) => e.preventDefault());
     document.addEventListener('drop', (e) => { e.preventDefault(); importFile(e.dataTransfer.files[0]); });
+    // Android back button: close the sheet, then go back to Overview, then leave the app
+    const AppPlugin = isNative && nativePlugin('App');
+    if (AppPlugin) {
+      AppPlugin.addListener('backButton', () => {
+        if (!$('#sheetWrap').hidden) closeSheet();
+        else if (S.tab !== 'overview' && !$('#app').hidden) setTab('overview');
+        else AppPlugin.exitApp();
+      });
+    }
   }
 
   function startOnboarding() {
@@ -505,9 +541,17 @@
     root.querySelector('.range-val b').classList.add('mp-val');
     root.querySelector('.hint').classList.add('mp-since');
     monthPicker(root);
-    $('#obStart').onclick = pickFile;
     $('#obDemo').onclick = () => { S.demo = true; scan(S.months); };
-    $('#obHow').onclick = howtoSheet;
+    if (isNative) {
+      $('#obStart').textContent = 'Allow SMS access & analyse';
+      $('#obStart').onclick = () => { S.demo = false; scan(S.months); };
+      $('#obHow').hidden = true;
+      $('.ob-hero p').textContent = 'SpendSphere reads the bank, card and UPI alerts in your SMS and turns them into a clear picture of your spending — on your phone, never uploaded.';
+      $('.ob-points li').lastChild.textContent = 'Messages are read only on this phone — there is no server';
+    } else {
+      $('#obStart').onclick = pickFile;
+      $('#obHow').onclick = howtoSheet;
+    }
   }
 
   // ───────── boot ─────────
